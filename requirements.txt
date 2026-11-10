@@ -1,14 +1,14 @@
 # Core GUI & UI Framework
-customtkinter>=5.2.0
+customtkinter>=5.2.0; sys_platform == 'win32'
 darkdetect>=0.8.0
 
 # Speech Recognition & Audio Input
 SpeechRecognition>=3.14.0
-PyAudio>=0.2.14
-sounddevice>=0.5.0
+PyAudio>=0.2.14; sys_platform == 'win32'
+sounddevice>=0.5.0; sys_platform == 'win32'
 
 # Text-to-Speech Engine
-pyttsx3>=2.90
+pyttsx3>=2.90; sys_platform == 'win32'
 gTTS>=2.5.0
 
 # AI & LLM Engine
@@ -16,14 +16,14 @@ openai>=1.50.0
 pydantic>=2.8.0
 
 # Desktop & Browser Automation
-pyautogui>=0.9.54
-pywin32>=306
+pyautogui>=0.9.54; sys_platform == 'win32'
+pywin32>=306; sys_platform == 'win32'
 psutil>=5.9.0
 
-# Utilities & Networking
+# Utilities & Image Processing
 requests>=2.31.0
 python-dotenv>=1.0.0
+pillow>=10.0.0
 
-# Testing & Packaging
+# Testing
 pytest>=8.0.0
-

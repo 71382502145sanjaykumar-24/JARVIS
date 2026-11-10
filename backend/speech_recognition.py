@@ -6,7 +6,10 @@ Captures microphone input, calibrates for ambient noise, and transcribes speech 
 import threading
 import time
 from typing import Optional, Callable
-import speech_recognition as sr
+try:
+    import speech_recognition as sr
+except Exception:
+    sr = None
 from utils.logger import logger
 from utils.config import config
 
@@ -14,10 +17,13 @@ class SpeechRecognitionEngine:
     """Manages audio capture and transcription via SpeechRecognition."""
 
     def __init__(self):
-        self.recognizer = sr.Recognizer()
-        self.recognizer.energy_threshold = config.energy_threshold
-        self.recognizer.dynamic_energy_threshold = config.dynamic_energy_threshold
-        self.recognizer.pause_threshold = config.pause_threshold
+        if sr:
+            self.recognizer = sr.Recognizer()
+            self.recognizer.energy_threshold = config.energy_threshold
+            self.recognizer.dynamic_energy_threshold = config.dynamic_energy_threshold
+            self.recognizer.pause_threshold = config.pause_threshold
+        else:
+            self.recognizer = None
         
         self.is_listening: bool = False
         self._stop_listening_flag: bool = False

@@ -7,7 +7,10 @@ import threading
 import queue
 import time
 from typing import Optional, Callable, List, Dict, Any
-import pyttsx3
+try:
+    import pyttsx3
+except Exception:
+    pyttsx3 = None
 from utils.logger import logger
 from utils.config import config
 
@@ -30,6 +33,11 @@ class VoiceEngine:
 
     def _init_engine(self):
         """Initializes the pyttsx3 engine with configured parameters."""
+        if not pyttsx3:
+            logger.info("pyttsx3 is not installed or available in this environment.")
+            self._engine = None
+            return
+
         try:
             self._engine = pyttsx3.init()
             self._engine.setProperty("rate", config.voice_rate)

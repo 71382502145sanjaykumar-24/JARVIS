@@ -6,15 +6,17 @@ Provides controlled, permission-checked keyboard and mouse automation via PyAuto
 import time
 import threading
 from typing import Dict, Any, Optional, Callable
-import pyautogui
+try:
+    import pyautogui
+    pyautogui.FAILSAFE = True
+    pyautogui.PAUSE = 0.3
+except Exception:
+    pyautogui = None
+
 from utils.logger import logger
 from utils.permissions import permissions
 from utils.config import config
 from database.db_manager import db
-
-# Enable PyAutoGUI fail-safe (moving cursor to corner stops action)
-pyautogui.FAILSAFE = True
-pyautogui.PAUSE = 0.3
 
 class AutomationEngine:
     """Safely executes keyboard and mouse tasks with confirmation checks and emergency halts."""
@@ -34,6 +36,9 @@ class AutomationEngine:
 
     def type_text(self, text: str, delay: float = 0.05) -> Dict[str, Any]:
         """Types text using keyboard emulation after safety verification."""
+        if not pyautogui:
+            return {"success": False, "message": "Desktop automation is not available in cloud/serverless environment."}
+
         if not config.automation_enabled:
             return {"success": False, "message": "Desktop automation is disabled in settings."}
 
