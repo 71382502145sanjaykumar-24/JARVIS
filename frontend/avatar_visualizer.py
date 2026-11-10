@@ -211,3 +211,4 @@ class HolographicAvatar(ctk.CTkFrame):
 
         # Schedule next frame (approx 33 FPS)
         self.after(30, self._animate)
+
