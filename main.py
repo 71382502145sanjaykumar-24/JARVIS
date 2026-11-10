@@ -16,11 +16,10 @@ if str(BASE_DIR) not in sys.path:
 from utils.logger import logger
 from utils.config import config
 from utils.helpers import ensure_tcl_tk_environment
-from web_server import JarvisWebHandler
+from api.index import app
 
-# Export handler and app for Vercel Serverless deployments
-handler = JarvisWebHandler
-app = handler
+# Export app for Vercel
+handler = app
 
 # Ensure Tcl/Tk is located in virtual environments
 ensure_tcl_tk_environment()

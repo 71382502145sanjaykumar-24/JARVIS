@@ -7,6 +7,7 @@ import sqlite3
 import datetime
 import uuid
 import json
+import os
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from utils.logger import logger
@@ -16,9 +17,17 @@ class DatabaseManager:
     """Manages SQLite database connections and transactions for JARVIS."""
 
     def __init__(self, db_path: Optional[Path] = None):
-        self.db_path = db_path or config.db_path
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._init_db()
+        if os.environ.get("VERCEL"):
+            self.db_path = Path("/tmp") / "jarvis.db"
+        else:
+            self.db_path = db_path or config.db_path
+        try:
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
+            self._init_db()
+        except Exception as e:
+            logger.warning(f"Could not initialize disk DB, falling back to memory: {e}")
+            self.db_path = Path(":memory:")
+            self._init_db()
 
     def _get_connection(self) -> sqlite3.Connection:
         """Returns a connection configured for row dictionaries."""
