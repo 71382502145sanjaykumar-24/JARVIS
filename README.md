@@ -1,4 +1,10 @@
-# JARVIS – Intelligent Voice-Activated AI Desktop Assistant & Automation Tool
+<div align="center">
+  <img src="assets/jarvis_cyan.png" alt="JARVIS AI Virtual Assistant" width="320" style="border-radius: 16px; box-shadow: 0 0 25px #00f0ff;" />
+  <br/>
+  <h1>◈ J.A.R.V.I.S. ◈</h1>
+  <p><b>Intelligent Voice-Activated AI Desktop Assistant & Automation Tool</b></p>
+  <p><i>Next-generation desktop automation, neural speech synthesis, and cyberpunk HUD telemetry.</i></p>
+</div>
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![UI-CustomTkinter](https://img.shields.io/badge/GUI-CustomTkinter-00f0ff.svg)](https://github.com/TomSchimansky/CustomTkinter)

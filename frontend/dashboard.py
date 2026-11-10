@@ -36,6 +36,7 @@ from frontend.components import (
     COLOR_TEXT_MUTED
 )
 from frontend.voice_visualizer import VoiceVisualizer
+from frontend.avatar_visualizer import HolographicAvatar
 from frontend.chat_interface import ChatInterface
 from frontend.settings import SettingsView
 
@@ -57,6 +58,7 @@ class JarvisDashboard(ctk.CTk):
         # State tracking
         self.current_conversation_id = db.create_conversation("Main Session")
         self.is_processing = False
+        self.current_theme = "cyan"
 
         # Hook safety callbacks
         automation_engine.confirmation_callback = self._prompt_confirmation
@@ -132,6 +134,20 @@ class JarvisDashboard(ctk.CTk):
         )
         self.btn_emergency.pack(side="left", padx=8)
 
+        # Theme Switcher Button
+        self.btn_theme = ctk.CTkButton(
+            right_frame,
+            text="🎨 THEME: CYAN",
+            font=("Segoe UI", 10, "bold"),
+            text_color=COLOR_CYAN,
+            fg_color="#1E293B",
+            hover_color="#334155",
+            width=115,
+            height=32,
+            command=self._toggle_theme
+        )
+        self.btn_theme.pack(side="left", padx=5)
+
         # Settings Button
         self.btn_settings = ctk.CTkButton(
             right_frame,
@@ -154,17 +170,33 @@ class JarvisDashboard(ctk.CTk):
         self.left_panel = GlassPanel(self.body_frame, width=380)
         self.left_panel.pack(side="left", fill="both", padx=(0, 10))
 
+        # Holographic Animated AI Avatar HUD
+        lbl_hud = ctk.CTkLabel(
+            self.left_panel, 
+            text="◈ NEURAL CORE AVATAR", 
+            font=("Segoe UI", 11, "bold"), 
+            text_color=COLOR_CYAN
+        )
+        lbl_hud.pack(anchor="w", padx=16, pady=(12, 4))
+
+        self.avatar_hud = HolographicAvatar(
+            self.left_panel,
+            avatar_path="assets/jarvis_cyan.png",
+            size=180
+        )
+        self.avatar_hud.pack(padx=16, pady=(0, 8))
+
         # Core Arc Visualizer
         lbl_vis = ctk.CTkLabel(
             self.left_panel, 
             text="VOICE SYNTHESIS & SPECTRUM", 
-            font=("Segoe UI", 11, "bold"), 
-            text_color=COLOR_CYAN
+            font=("Segoe UI", 10, "bold"), 
+            text_color=COLOR_TEXT_MUTED
         )
-        lbl_vis.pack(anchor="w", padx=16, pady=(16, 6))
+        lbl_vis.pack(anchor="w", padx=16, pady=(4, 4))
 
-        self.visualizer = VoiceVisualizer(self.left_panel, height=90)
-        self.visualizer.pack(fill="x", padx=16, pady=(0, 12))
+        self.visualizer = VoiceVisualizer(self.left_panel, height=75)
+        self.visualizer.pack(fill="x", padx=16, pady=(0, 10))
 
         # Central Mic Activation Orb
         orb_frame = ctk.CTkFrame(self.left_panel, fg_color="transparent")
@@ -295,13 +327,35 @@ class JarvisDashboard(ctk.CTk):
     # -------------------------------------------------------------------------
     # Setup Voice Hooks & Threading
     # -------------------------------------------------------------------------
+    def _set_assistant_state(self, new_state: str):
+        """Updates both holographic HUD avatar and audio waveform visualizer."""
+        if hasattr(self, "avatar_hud"):
+            self.avatar_hud.set_state(new_state)
+        if hasattr(self, "visualizer"):
+            self.visualizer.set_state(new_state)
+
+    def _toggle_theme(self):
+        """Swaps UI theme between Arc Reactor Cyan and Stark Amber Core."""
+        if self.current_theme == "cyan":
+            self.current_theme = "amber"
+            self.btn_theme.configure(text="🎨 THEME: AMBER", text_color="#FF9500")
+            if hasattr(self, "avatar_hud"):
+                self.avatar_hud.set_theme_avatar("assets/jarvis_amber.png")
+            self.chat_view.add_message("jarvis", "Visual matrix adjusted to Stark Amber Forge.", intent="theme_change")
+        else:
+            self.current_theme = "cyan"
+            self.btn_theme.configure(text="🎨 THEME: CYAN", text_color=COLOR_CYAN)
+            if hasattr(self, "avatar_hud"):
+                self.avatar_hud.set_theme_avatar("assets/jarvis_cyan.png")
+            self.chat_view.add_message("jarvis", "Visual matrix adjusted to Arc Reactor Cyan.", intent="theme_change")
+
     def _setup_voice_engine_hooks(self):
         """Connects voice engine and speech recognizer callbacks to UI updates."""
         voice_engine.on_start_speaking = lambda: self._safe_ui_call(
-            lambda: self.visualizer.set_state(VoiceVisualizer.STATE_SPEAKING)
+            lambda: self._set_assistant_state("SPEAKING")
         )
         voice_engine.on_stop_speaking = lambda: self._safe_ui_call(
-            lambda: self.visualizer.set_state(VoiceVisualizer.STATE_IDLE)
+            lambda: self._set_assistant_state("IDLE")
         )
 
         speech_recognizer.on_start_listening = lambda: self._safe_ui_call(self._on_mic_start)
@@ -343,17 +397,17 @@ class JarvisDashboard(ctk.CTk):
     def _on_mic_start(self):
         self.pill_mic.set_status(True, "LISTENING...", COLOR_GREEN)
         self.btn_mic_activate.configure(text="🔴 LISTENING... (SPEAK NOW)", fg_color=COLOR_RED)
-        self.visualizer.set_state(VoiceVisualizer.STATE_LISTENING)
+        self._set_assistant_state("LISTENING")
 
     def _on_mic_stop(self):
         self.pill_mic.set_status(True, "MIC READY", COLOR_CYAN)
         self.btn_mic_activate.configure(text="🎙 ACTIVATE VOICE (PUSH TO TALK)", fg_color=COLOR_CYAN)
         if not voice_engine.is_speaking and not self.is_processing:
-            self.visualizer.set_state(VoiceVisualizer.STATE_IDLE)
+            self._set_assistant_state("IDLE")
 
     def _on_speech_error(self, error_message: str):
         self.chat_view.add_message("jarvis", f"Audio input notice: {error_message}", intent="speech_notice")
-        self.visualizer.set_state(VoiceVisualizer.STATE_IDLE)
+        self._set_assistant_state("IDLE")
 
     def _on_submit_typed_command(self):
         text = self.cmd_entry.get().strip()
@@ -368,7 +422,7 @@ class JarvisDashboard(ctk.CTk):
             return
 
         self.chat_view.add_message("user", command_text)
-        self.visualizer.set_state(VoiceVisualizer.STATE_PROCESSING)
+        self._set_assistant_state("PROCESSING")
         self.is_processing = True
 
         # Run processing on a background worker thread
@@ -402,7 +456,7 @@ class JarvisDashboard(ctk.CTk):
         if response_text:
             self.chat_view.add_message("jarvis", response_text, intent=intent)
         if not voice_engine.is_speaking:
-            self.visualizer.set_state(VoiceVisualizer.STATE_IDLE)
+            self._set_assistant_state("IDLE")
 
     # -------------------------------------------------------------------------
     # Safety Controls & Telemetry
@@ -424,7 +478,7 @@ class JarvisDashboard(ctk.CTk):
         automation_engine.emergency_stop()
         voice_engine.stop()
         speech_recognizer.stop_listening()
-        self.visualizer.set_state(VoiceVisualizer.STATE_IDLE)
+        self._set_assistant_state("IDLE")
         self.chat_view.add_message("jarvis", "🛑 EMERGENCY STOP EXECUTED. All automations and voice speech halted.", intent="emergency_stop")
 
     def _clear_chat_stream(self):
