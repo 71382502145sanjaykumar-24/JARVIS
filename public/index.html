@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JARVIS — AI Virtual Assistant & Automation Tool</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #070B14;
+      color: #F8FAFC;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+    header {
+      background: rgba(13, 21, 39, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid #1E293B;
+      padding: 14px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand h1 {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: #00F0FF;
+      letter-spacing: 2px;
+      text-shadow: 0 0 15px rgba(0,240,255,0.4);
+    }
+    .badge {
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      border-radius: 12px;
+      background: #111A2E;
+      border: 1px solid #1E293B;
+      color: #94A3B8;
+    }
+    .status-pills {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .pill {
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 5px 14px;
+      border-radius: 20px;
+      background: #0F172A;
+      border: 1px solid #334155;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .pill .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #00FFA3;
+      box-shadow: 0 0 8px #00FFA3;
+    }
+    .main-grid {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 20px;
+      padding: 20px 28px;
+      flex: 1;
+    }
+    @media(max-width: 900px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+    .glass-card {
+      background: #0D1527;
+      border: 1px solid #1E293B;
+      border-radius: 14px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+    .avatar-wrapper {
+      position: relative;
+      width: 220px;
+      height: 220px;
+      margin: 10px auto;
+    }
+    .avatar-img {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      position: absolute;
+      top: 40px;
+      left: 40px;
+      object-fit: cover;
+      box-shadow: 0 0 25px rgba(0,240,255,0.35);
+      border: 2px solid #00F0FF;
+    }
+    canvas#hud-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 220px;
+      height: 220px;
+    }
+    canvas#wave-canvas {
+      width: 100%;
+      height: 75px;
+      background: #070B14;
+      border-radius: 8px;
+      border: 1px solid #1E293B;
+      margin-top: 12px;
+    }
+    .btn-mic {
+      background: #00F0FF;
+      color: #070B14;
+      font-weight: 800;
+      border: none;
+      border-radius: 8px;
+      padding: 12px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      margin-top: 14px;
+      transition: all 0.2s;
+      box-shadow: 0 0 15px rgba(0,240,255,0.3);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-mic.listening {
+      background: #FF0055;
+      color: #FFF;
+      box-shadow: 0 0 20px rgba(255,0,85,0.6);
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.75; }
+      100% { opacity: 1; }
+    }
+    .btn-mic:hover {
+      transform: translateY(-2px);
+    }
+    .telemetry-card {
+      background: #070B14;
+      border: 1px solid #1E293B;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 16px;
+      font-size: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .telemetry-card span { color: #00F0FF; font-weight: 700; }
+    .chips-section {
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .chip {
+      background: #111A2E;
+      border: 1px solid #1E293B;
+      color: #E2E8F0;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      text-align: left;
+      transition: all 0.15s;
+    }
+    .chip:hover {
+      background: #1E293B;
+      border-color: #00F0FF;
+      color: #00F0FF;
+    }
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .chat-header {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #00F0FF;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-right: 6px;
+      max-height: 540px;
+    }
+    .bubble {
+      padding: 12px 16px;
+      border-radius: 12px;
+      max-width: 80%;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+    .bubble.user {
+      align-self: flex-end;
+      background: #1E293B;
+      border: 1px solid #334155;
+      color: #F8FAFC;
+    }
+    .bubble.jarvis {
+      align-self: flex-start;
+      background: #0F213A;
+      border: 1px solid #0284C7;
+      color: #F8FAFC;
+      box-shadow: 0 0 10px rgba(2,132,199,0.2);
+    }
+    .bubble .sender-tag {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: #00F0FF;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+    .bubble.user .sender-tag {
+      color: #94A3B8;
+    }
+    .input-bar {
+      margin-top: 16px;
+      display: flex;
+      gap: 10px;
+    }
+    .input-bar input {
+      flex: 1;
+      background: #070B14;
+      border: 1px solid #1E293B;
+      border-radius: 8px;
+      color: #FFF;
+      padding: 12px 16px;
+      font-size: 0.95rem;
+      outline: none;
+    }
+    .input-bar input:focus {
+      border-color: #00F0FF;
+      box-shadow: 0 0 10px rgba(0,240,255,0.25);
+    }
+    .input-bar button {
+      background: #0070F3;
+      color: #FFF;
+      font-weight: 700;
+      border: none;
+      border-radius: 8px;
+      padding: 0 24px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+    .input-bar button:hover {
+      background: #0056B3;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <h1>◈ J.A.R.V.I.S.</h1>
+      <span class="badge">WEB HUD v2.0</span>
+    </div>
+    <div class="status-pills">
+      <div class="pill"><span class="dot"></span> ONLINE</div>
+      <button onclick="toggleTheme()" class="chip" id="theme-btn" style="padding: 5px 12px; margin: 0;">🎨 THEME: CYAN</button>
+    </div>
+  </header>
+
+  <main class="main-grid">
+    <!-- Left Panel -->
+    <div class="glass-card">
+      <div style="font-size: 0.85rem; font-weight: 700; color: #00F0FF; letter-spacing: 1px; margin-bottom: 6px;">◈ HOLOGRAPHIC CORE</div>
+      <div class="avatar-wrapper">
+        <canvas id="hud-canvas" width="220" height="220"></canvas>
+        <img id="avatar-element" class="avatar-img" src="/assets/jarvis_cyan.png" alt="JARVIS Core">
+      </div>
+
+      <div style="font-size: 0.75rem; font-weight: 700; color: #94A3B8; margin-top: 8px;">VOICE SPECTRUM FREQUENCY</div>
+      <canvas id="wave-canvas"></canvas>
+
+      <button class="btn-mic" id="mic-btn" onclick="toggleVoice()">
+        <span id="mic-icon">🎙</span> <span id="mic-text">ACTIVATE VOICE (BROWSER)</span>
+      </button>
+
+      <div class="telemetry-card">
+        <div>CPU LOAD: <span id="cpu-val">--%</span></div>
+        <div>RAM UTILIZATION: <span id="ram-val">-- / -- GB</span></div>
+        <div>CLOCK: <span id="time-val">--:--</span></div>
+      </div>
+
+      <div class="chips-section">
+        <div style="font-size: 0.8rem; font-weight: 700; color: #00F0FF; margin-bottom: 2px;">QUICK COMMANDS</div>
+        <div class="chip" onclick="executeCommand('Open Notepad')">› Open Notepad</div>
+        <div class="chip" onclick="executeCommand('Open YouTube')">› Open YouTube</div>
+        <div class="chip" onclick="executeCommand('Search AI news on Google')">› Search AI news</div>
+        <div class="chip" onclick="executeCommand('System status')">› System status</div>
+        <div class="chip" onclick="executeCommand('What time is it?')">› What time is it?</div>
+      </div>
+    </div>
+
+    <!-- Right Panel (Chat) -->
+    <div class="glass-card chat-container">
+      <div class="chat-header">
+        <span>NEURAL CONVERSATION STREAM</span>
+        <button class="badge" onclick="clearStream()" style="cursor: pointer;">Clear Stream</button>
+      </div>
+
+      <div class="chat-messages" id="chat-messages">
+        <div class="bubble jarvis">
+          <div class="sender-tag">JARVIS [ONLINE]</div>
+          Good day, sir. JARVIS Web Intelligence HUD is online and ready on http://localhost:8080. You can speak via your browser microphone or enter queries below.
+        </div>
+      </div>
+
+      <div class="input-bar">
+        <input type="text" id="cmd-input" placeholder="Transmit instruction or ask a question..." onkeydown="if(event.key==='Enter') sendInput()">
+        <button onclick="sendInput()">TRANSMIT</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let isListening = false;
+    let recognition = null;
+    let currentTheme = 'cyan';
+    let currentState = 'IDLE'; // IDLE, LISTENING, PROCESSING, SPEAKING
+
+    // Setup Web Speech Recognition if supported
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+        isListening = true;
+        currentState = 'LISTENING';
+        document.getElementById('mic-btn').classList.add('listening');
+        document.getElementById('mic-text').innerText = 'LISTENING (SPEAK NOW)...';
+      };
+
+      recognition.onresult = (event) => {
+        const text = event.results[0][0].transcript;
+        executeCommand(text);
+      };
+
+      recognition.onerror = (event) => {
+        console.error('Speech error:', event.error);
+        stopListeningState();
+      };
+
+      recognition.onend = () => {
+        stopListeningState();
+      };
+    }
+
+    function toggleVoice() {
+      if (!recognition) {
+        alert('Web Speech Recognition is not supported by your current browser. Please use Google Chrome or Edge.');
+        return;
+      }
+      if (isListening) {
+        recognition.stop();
+      } else {
+        recognition.start();
+      }
+    }
+
+    function stopListeningState() {
+      isListening = false;
+      currentState = 'IDLE';
+      document.getElementById('mic-btn').classList.remove('listening');
+      document.getElementById('mic-text').innerText = 'ACTIVATE VOICE (BROWSER)';
+    }
+
+    function speakText(text) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        currentState = 'SPEAKING';
+        utterance.onend = () => { currentState = 'IDLE'; };
+        utterance.onerror = () => { currentState = 'IDLE'; };
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+
+    async function executeCommand(cmd) {
+      if (!cmd || !cmd.trim()) return;
+      appendMessage('user', cmd);
+      currentState = 'PROCESSING';
+
+      try {
+        const res = await fetch('/api/command', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command: cmd })
+        });
+        const data = await res.json();
+        appendMessage('jarvis', data.response || 'Action completed.', data.intent);
+        if (data.response) {
+          speakText(data.response);
+        }
+      } catch (err) {
+        appendMessage('jarvis', 'Connection error while transmitting command: ' + err.message);
+        currentState = 'IDLE';
+      }
+    }
+
+    function sendInput() {
+      const input = document.getElementById('cmd-input');
+      const val = input.value.trim();
+      if (!val) return;
+      input.value = '';
+      executeCommand(val);
+    }
+
+    function appendMessage(sender, text, intent) {
+      const container = document.getElementById('chat-messages');
+      const div = document.createElement('div');
+      div.className = `bubble ${sender}`;
+      const tag = sender === 'user' ? 'YOU' : `JARVIS ${intent ? '[' + intent.toUpperCase() + ']' : ''}`;
+      div.innerHTML = `<div class="sender-tag">${tag}</div><div>${text}</div>`;
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function clearStream() {
+      document.getElementById('chat-messages').innerHTML = '';
+      appendMessage('jarvis', 'Neural conversation stream cleared.');
+    }
+
+    function toggleTheme() {
+      const btn = document.getElementById('theme-btn');
+      const img = document.getElementById('avatar-element');
+      if (currentTheme === 'cyan') {
+        currentTheme = 'amber';
+        btn.innerText = '🎨 THEME: AMBER';
+        btn.style.color = '#FF9500';
+        img.src = '/assets/jarvis_amber.png';
+      } else {
+        currentTheme = 'cyan';
+        btn.innerText = '🎨 THEME: CYAN';
+        btn.style.color = '#00F0FF';
+        img.src = '/assets/jarvis_cyan.png';
+      }
+    }
+
+    // Telemetry Poller
+    setInterval(async () => {
+      try {
+        const res = await fetch('/api/telemetry');
+        const data = await res.json();
+        document.getElementById('cpu-val').innerText = data.cpu_percent + '%';
+        document.getElementById('ram-val').innerText = `${data.ram_used_gb} / ${data.ram_total_gb} GB (${data.ram_percent}%)`;
+        document.getElementById('time-val').innerText = data.time;
+      } catch (e) {}
+    }, 3000);
+
+    // Canvas Hologram HUD Animation
+    const hudCanvas = document.getElementById('hud-canvas');
+    const hudCtx = hudCanvas.getContext('2d');
+    let angleOuter = 0;
+    let angleInner = 180;
+
+    function drawHUD() {
+      hudCtx.clearRect(0, 0, 220, 220);
+      const cx = 110, cy = 110;
+      const speed = currentState === 'LISTENING' ? 4 : (currentState === 'SPEAKING' ? 5 : 1);
+      angleOuter = (angleOuter + speed) % 360;
+      angleInner = (angleInner - speed * 1.5) % 360;
+
+      const mainColor = currentTheme === 'amber' ? '#FF9500' : (currentState === 'LISTENING' ? '#00FFA3' : '#00F0FF');
+      
+      // Outer segmented arcs
+      hudCtx.strokeStyle = mainColor;
+      hudCtx.lineWidth = 2;
+      for (let offset of [0, 90, 180, 270]) {
+        hudCtx.beginPath();
+        const start = ((angleOuter + offset) * Math.PI) / 180;
+        const end = start + (45 * Math.PI) / 180;
+        hudCtx.arc(cx, cy, 95, start, end);
+        hudCtx.stroke();
+      }
+
+      // Inner counter arcs
+      hudCtx.strokeStyle = currentTheme === 'amber' ? '#FF5500' : '#0070F3';
+      hudCtx.lineWidth = 1.5;
+      for (let offset of [30, 120, 210, 300]) {
+        hudCtx.beginPath();
+        const start = ((angleInner + offset) * Math.PI) / 180;
+        const end = start + (25 * Math.PI) / 180;
+        hudCtx.arc(cx, cy, 80, start, end);
+        hudCtx.stroke();
+      }
+
+      requestAnimationFrame(drawHUD);
+    }
+    requestAnimationFrame(drawHUD);
+
+    // Canvas Waveform Animation
+    const waveCanvas = document.getElementById('wave-canvas');
+    const waveCtx = waveCanvas.getContext('2d');
+    let wavePhase = 0;
+
+    function drawWave() {
+      waveCanvas.width = waveCanvas.offsetWidth;
+      waveCanvas.height = waveCanvas.offsetHeight;
+      const w = waveCanvas.width;
+      const h = waveCanvas.height;
+      const midY = h / 2;
+      waveCtx.clearRect(0, 0, w, h);
+
+      const amp = currentState === 'LISTENING' ? 20 : (currentState === 'SPEAKING' ? 24 : 4);
+      const spd = currentState === 'IDLE' ? 0.05 : 0.2;
+      wavePhase += spd;
+
+      waveCtx.strokeStyle = currentTheme === 'amber' ? '#FF9500' : (currentState === 'LISTENING' ? '#00FFA3' : '#00F0FF');
+      waveCtx.lineWidth = 2;
+      waveCtx.beginPath();
+
+      for (let x = 0; x <= w; x += 4) {
+        const norm = (x / w) * 2 - 1;
+        const envelope = Math.exp(-2.5 * norm * norm);
+        const y = midY + Math.sin(x * 0.05 + wavePhase) * amp * envelope;
+        if (x === 0) waveCtx.moveTo(x, y);
+        else waveCtx.lineTo(x, y);
+      }
+      waveCtx.stroke();
+      requestAnimationFrame(drawWave);
+    }
+    requestAnimationFrame(drawWave);
+  </script>
+</body>
+</html>
