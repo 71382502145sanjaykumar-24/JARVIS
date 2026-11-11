@@ -1,80 +1,62 @@
 """
-Vercel Serverless Function Entry Point for JARVIS (Flask WSGI)
+Vercel Serverless Function Entry Point for JARVIS
 """
 
 import sys
 import os
 import json
 from pathlib import Path
-from flask import Flask, request, jsonify, Response, send_file
+from http.server import BaseHTTPRequestHandler
 
 # Add root directory to sys.path
 ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-# Ensure serverless environment variables
+# Ensure serverless environment flag
 os.environ["VERCEL"] = "1"
 
-from utils.helpers import get_system_metrics, get_current_time_str
 from backend.command_processor import command_processor
+from utils.helpers import get_system_metrics, get_current_time_str
 
-app = Flask(__name__)
+class handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        # Return health check / telemetry
+        try:
+            metrics = get_system_metrics()
+            metrics["time"] = get_current_time_str()
+            metrics["status"] = "online"
+        except Exception:
+            metrics = {"status": "online", "time": get_current_time_str()}
+        
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(json.dumps(metrics).encode("utf-8"))
 
-# Cache HTML content
-HTML_FILE = ROOT_DIR / "public" / "index.html"
-if HTML_FILE.exists():
-    with open(HTML_FILE, "r", encoding="utf-8") as f:
-        INDEX_HTML = f.read()
-else:
-    INDEX_HTML = "<h1>JARVIS AI is Online</h1>"
+    def do_POST(self):
+        content_len = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(content_len).decode("utf-8") if content_len > 0 else ""
+        try:
+            data = json.loads(body) if body else {}
+            cmd = data.get("command", "")
+            result = command_processor.process(cmd)
+            
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(json.dumps(result).encode("utf-8"))
+        except Exception as e:
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                "intent": "error",
+                "response": f"Server processing: {str(e)}",
+                "action_taken": False
+            }).encode("utf-8"))
 
-@app.route("/", methods=["GET"])
-@app.route("/index", methods=["GET"])
-@app.route("/index.html", methods=["GET"])
-@app.route("/api", methods=["GET"])
-def index():
-    return Response(INDEX_HTML, mimetype="text/html")
-
-@app.route("/assets/<path:filename>", methods=["GET"])
-def serve_assets(filename):
-    asset_file = ROOT_DIR / "public" / "assets" / filename
-    if not asset_file.exists():
-        asset_file = ROOT_DIR / "assets" / filename
-    if asset_file.exists():
-        return send_file(str(asset_file))
-    return ("Asset Not Found", 404)
-
-@app.route("/api/telemetry", methods=["GET"])
-@app.route("/telemetry", methods=["GET"])
-def telemetry():
-    try:
-        metrics = get_system_metrics()
-        metrics["time"] = get_current_time_str()
-        return jsonify(metrics)
-    except Exception as e:
-        return jsonify({
-            "cpu_percent": 15.0, 
-            "ram_percent": 42.0, 
-            "ram_used_gb": 6.8, 
-            "ram_total_gb": 16.0, 
-            "time": get_current_time_str()
-        })
-
-@app.route("/api/command", methods=["POST"])
-@app.route("/command", methods=["POST"])
-def run_command():
-    try:
-        data = request.get_json(silent=True) or {}
-        cmd = data.get("command", "")
-        result = command_processor.process(cmd)
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({
-            "intent": "error", 
-            "response": f"Server processing: {str(e)}", 
-            "action_taken": False
-        })
-
-if __name__ == "__main__":
-    app.run(port=8080)
+app = handler

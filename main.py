@@ -18,21 +18,15 @@ from utils.config import config
 from utils.helpers import ensure_tcl_tk_environment
 from api.index import app
 
-# Export app for Vercel
+# Export app for Vercel Serverless
 handler = app
-
-# Ensure Tcl/Tk is located in virtual environments
-ensure_tcl_tk_environment()
-
-from database.db_manager import db
-from backend.voice_engine import voice_engine
-from backend.speech_recognition import speech_recognizer
-from frontend.dashboard import JarvisDashboard
 
 def handle_exit():
     """Performs clean shutdown of background workers and threads."""
     logger.info("Initiating JARVIS shutdown sequence...")
     try:
+        from backend.voice_engine import voice_engine
+        from backend.speech_recognition import speech_recognizer
         voice_engine.stop()
         speech_recognizer.stop_listening()
     except Exception as e:
@@ -41,6 +35,11 @@ def handle_exit():
 
 def main():
     """Main application lifecycle runner."""
+    # Ensure Tcl/Tk is located in virtual environments on Windows
+    ensure_tcl_tk_environment()
+
+    from database.db_manager import db
+    from frontend.dashboard import JarvisDashboard
     logger.info("=" * 60)
     logger.info("Starting JARVIS AI Virtual Assistant & Automation Tool")
     logger.info(f"Root Directory: {BASE_DIR}")

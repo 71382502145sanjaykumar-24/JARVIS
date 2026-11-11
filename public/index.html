@@ -418,13 +418,19 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ command: cmd })
         });
-        const data = await res.json();
-        appendMessage('jarvis', data.response || 'Action completed.', data.intent);
+        const rawText = await res.text();
+        let data;
+        try {
+          data = JSON.parse(rawText);
+        } catch(pe) {
+          data = { response: rawText, intent: 'response' };
+        }
+        appendMessage('jarvis', data.response || 'Action processed.', data.intent);
         if (data.response) {
           speakText(data.response);
         }
       } catch (err) {
-        appendMessage('jarvis', 'Connection error while transmitting command: ' + err.message);
+        appendMessage('jarvis', 'Notice: ' + err.message);
         currentState = 'IDLE';
       }
     }

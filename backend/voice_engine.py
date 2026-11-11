@@ -6,6 +6,7 @@ Supports pyttsx3 (offline) and gTTS (online fallback), rate/pitch control, and n
 import threading
 import queue
 import time
+import os
 from typing import Optional, Callable, List, Dict, Any
 try:
     import pyttsx3
@@ -28,8 +29,9 @@ class VoiceEngine:
         self.on_start_speaking: Optional[Callable[[], None]] = None
         self.on_stop_speaking: Optional[Callable[[], None]] = None
 
-        self._init_engine()
-        self._start_worker()
+        if not os.environ.get("VERCEL"):
+            self._init_engine()
+            self._start_worker()
 
     def _init_engine(self):
         """Initializes the pyttsx3 engine with configured parameters."""
