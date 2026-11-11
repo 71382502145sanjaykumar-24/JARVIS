@@ -18,7 +18,7 @@ pydantic>=2.8.0
 # Desktop & Browser Automation
 pyautogui>=0.9.54; sys_platform == 'win32'
 pywin32>=306; sys_platform == 'win32'
-psutil>=5.9.0
+psutil>=5.9.0; sys_platform == 'win32'
 
 # Utilities & Image Processing
 requests>=2.31.0
