@@ -1,25 +1,12 @@
 """
-Vercel Serverless Function Entry Point for JARVIS (/api)
+Vercel Serverless Function Bridge
 """
 
-import json
-import datetime
-from http.server import BaseHTTPRequestHandler
+import sys
+from pathlib import Path
 
-class handler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        now = datetime.datetime.now()
-        data = {
-            "status": "online",
-            "service": "JARVIS Web Intelligence",
-            "time": now.strftime("%I:%M %p")
-        }
-        body = json.dumps(data).encode("utf-8")
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
-app = handler
+from main import app
