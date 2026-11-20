@@ -38,6 +38,7 @@ def serve_assets(filename):
     return send_from_directory(str(assets_dir), filename)
 
 @app.route("/api/telemetry", methods=["GET", "OPTIONS"])
+@app.route("/telemetry", methods=["GET", "OPTIONS"])
 def api_telemetry():
     if request.method == "OPTIONS":
         return ("", 204)
@@ -52,26 +53,52 @@ def api_telemetry():
     })
 
 @app.route("/api/command", methods=["POST", "OPTIONS"])
+@app.route("/command", methods=["POST", "OPTIONS"])
 def api_command():
     if request.method == "OPTIONS":
         return ("", 204)
     data = request.get_json(silent=True) or {}
     raw_cmd = data.get("command", "").strip()
+    user_api_key = data.get("apiKey", "").strip()
     if not raw_cmd:
         return jsonify({"intent": "empty", "response": "", "action_taken": False})
 
-    # Try full backend processor if available
-    try:
-        from backend.command_processor import command_processor
-        result = command_processor.process(raw_cmd)
-        return jsonify(result)
-    except Exception:
-        pass
-
-    # Built-in cloud NLP processor (guaranteed never to crash)
     cleaned = re.sub(r"^(?:hey\s+)?jarvis[,:\s]*", "", raw_cmd, flags=re.IGNORECASE).strip()
     now = datetime.datetime.now()
 
+    # Priority: OpenAI Intelligence Engine (User key or Environment key)
+    api_key = user_api_key or os.environ.get("OPENAI_API_KEY", "")
+    if api_key and len(api_key) > 10:
+        try:
+            import openai
+            client = openai.OpenAI(api_key=api_key)
+            model_name = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+            completion = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {
+                        "role": "system", 
+                        "content": "You are J.A.R.V.I.S., a sophisticated, articulate, polite, and brilliant AI assistant inspired by Tony Stark's system. Deliver concise, insightful, and helpful answers suitable for voice playback."
+                    },
+                    {"role": "user", "content": cleaned}
+                ],
+                max_tokens=600,
+                temperature=0.7
+            )
+            reply = completion.choices[0].message.content.strip()
+            return jsonify({
+                "intent": "ai_conversation",
+                "response": reply,
+                "action_taken": False
+            })
+        except Exception as e:
+            return jsonify({
+                "intent": "ai_error",
+                "response": f"OpenAI API Notice: {str(e)}",
+                "action_taken": False
+            })
+
+    # Built-in fast NLP for standard questions if no API key is provided
     if re.search(r"\b(time|what time is it)\b", cleaned, re.IGNORECASE):
         return jsonify({
             "intent": "time_info",
@@ -84,10 +111,10 @@ def api_command():
             "response": f"Today is {now.strftime('%A, %B %d, %Y')}.",
             "action_taken": False
         })
-    if re.search(r"\b(hello|hi|hey|greetings)\b", cleaned, re.IGNORECASE):
+    if re.search(r"\b(hello|hi|hey|greetings|who are you)\b", cleaned, re.IGNORECASE):
         return jsonify({
             "intent": "greeting",
-            "response": "Good day, sir. JARVIS Web Intelligence is active and listening. How may I assist you?",
+            "response": "Greetings, sir. I am J.A.R.V.I.S., your intelligent neural AI assistant. How may I assist you today?",
             "action_taken": False
         })
     if re.search(r"\b(status|health|diagnostics)\b", cleaned, re.IGNORECASE):
@@ -97,35 +124,9 @@ def api_command():
             "action_taken": False
         })
 
-    # OpenAI completion if key is set in environment
-    api_key = os.environ.get("OPENAI_API_KEY", "")
-    if api_key and len(api_key) > 10:
-        try:
-            import openai
-            client = openai.OpenAI(api_key=api_key)
-            completion = client.chat.completions.create(
-                model=os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
-                messages=[
-                    {"role": "system", "content": "You are JARVIS, an advanced AI desktop assistant. Be concise, polite, and helpful."},
-                    {"role": "user", "content": cleaned}
-                ],
-                max_tokens=300
-            )
-            return jsonify({
-                "intent": "ai_conversation",
-                "response": completion.choices[0].message.content.strip(),
-                "action_taken": False
-            })
-        except Exception as e:
-            return jsonify({
-                "intent": "ai_error",
-                "response": f"AI service note: {str(e)}",
-                "action_taken": False
-            })
-
     return jsonify({
         "intent": "general_response",
-        "response": f"I have received your command: '{cleaned}'. Desktop application automation runs on the Windows client, and conversational intelligence is active.",
+        "response": f"I heard: '{cleaned}'. To enable full GPT conversational intelligence, connect your OpenAI API key using the key button in the top bar.",
         "action_taken": False
     })
 

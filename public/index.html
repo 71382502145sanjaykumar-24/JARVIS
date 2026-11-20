@@ -282,6 +282,7 @@
     </div>
     <div class="status-pills">
       <div class="pill"><span class="dot"></span> ONLINE</div>
+      <button onclick="configureApiKey()" class="chip" id="key-btn" style="padding: 5px 12px; margin: 0;">🔑 CONNECT AI KEY</button>
       <button onclick="toggleTheme()" class="chip" id="theme-btn" style="padding: 5px 12px; margin: 0;">🎨 THEME: CYAN</button>
     </div>
   </header>
@@ -412,11 +413,12 @@
       appendMessage('user', cmd);
       currentState = 'PROCESSING';
 
+      const savedKey = localStorage.getItem('jarvis_openai_key') || '';
       try {
         const res = await fetch('/api/command', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ command: cmd })
+          body: JSON.stringify({ command: cmd, apiKey: savedKey })
         });
         const rawText = await res.text();
         let data;
@@ -433,6 +435,37 @@
         appendMessage('jarvis', 'Notice: ' + err.message);
         currentState = 'IDLE';
       }
+    }
+
+    function configureApiKey() {
+      const current = localStorage.getItem('jarvis_openai_key') || '';
+      const key = prompt('Enter your OpenAI API Key (sk-...) to power JARVIS GPT intelligence:', current);
+      if (key !== null) {
+        localStorage.setItem('jarvis_openai_key', key.trim());
+        updateKeyButton();
+        if (key.trim()) {
+          appendMessage('jarvis', 'OpenAI API Key connected. Full GPT conversational intelligence is now active.');
+        } else {
+          appendMessage('jarvis', 'OpenAI API Key cleared.');
+        }
+      }
+    }
+
+    function updateKeyButton() {
+      const btn = document.getElementById('key-btn');
+      if (!btn) return;
+      const hasKey = !!(localStorage.getItem('jarvis_openai_key'));
+      if (hasKey) {
+        btn.innerText = '🔑 AI KEY: ACTIVE';
+        btn.style.color = '#00FFA3';
+        btn.style.borderColor = '#00FFA3';
+      } else {
+        btn.innerText = '🔑 CONNECT AI KEY';
+        btn.style.color = '#94A3B8';
+        btn.style.borderColor = '#334155';
+      }
+    }
+    window.addEventListener('DOMContentLoaded', updateKeyButton);
     }
 
     function sendInput() {
